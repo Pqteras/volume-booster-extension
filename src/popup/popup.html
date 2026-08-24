@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Volume Booster</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <main class="w-full px-4.5 pb-3.5 pt-4.5">
+      <header class="flex items-center gap-2.5">
+        <img src="./logo.svg" alt="" class="h-6.5 w-6.5 shrink-0 object-contain drop-shadow-sm" aria-hidden="true" />
+        <div>
+          <p class="m-0 font-mono text-[10px] font-medium leading-none tracking-widest text-muted">
+            AUDIO CONTROL
+          </p>
+          <h1 class="mb-0 mt-1 text-base font-semibold leading-none tracking-tight text-ink">
+            Volume Booster
+          </h1>
+        </div>
+        <button
+          class="spring-btn ml-auto grid h-8.5 w-8.5 place-items-center rounded-full border border-white/12 bg-white/10 text-ink hover:border-accent hover:bg-accent hover:text-night focus-visible:ring-2 focus-visible:ring-accent"
+          id="muteButton"
+          type="button"
+          aria-label="Mute"
+          title="Mute"
+        >
+          <i id="muteIcon" class="fa-solid fa-volume-high text-sm transition-transform duration-200" aria-hidden="true"></i>
+        </button>
+      </header>
+
+      <section class="mt-6" aria-live="polite">
+        <div class="flex items-center justify-between">
+          <span class="font-mono text-[10px] font-medium leading-none tracking-widest text-muted">
+            CURRENT LEVEL
+          </span>
+          <div id="visualizer" class="is-paused flex h-4.5 items-end gap-1 pb-0.5" aria-hidden="true">
+            <span class="wave-bar block h-2 w-1 rounded-full bg-accent/60"></span>
+            <span class="wave-bar block h-4 w-1 rounded-full bg-accent"></span>
+            <span class="wave-bar block h-5 w-1 rounded-full bg-accent/90"></span>
+            <span class="wave-bar block h-3.5 w-1 rounded-full bg-accent"></span>
+            <span class="wave-bar block h-2.5 w-1 rounded-full bg-accent/70"></span>
+          </div>
+        </div>
+
+        <div class="my-1.5 flex items-baseline gap-1">
+          <strong class="text-display font-semibold tracking-tighter" id="volumeValue">100</strong>
+          <span class="font-mono text-base font-medium leading-none text-accent">%</span>
+        </div>
+
+        <div class="h-1 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+          <span id="meterFill" class="meter-fill block h-full rounded-full"></span>
+        </div>
+      </section>
+
+      <section class="mt-5 rounded-2xl border border-white/12 bg-white/10 px-4 pb-3.5 pt-4 shadow-panel backdrop-blur-2xl">
+        <div class="flex items-center gap-2.5">
+          <span class="min-w-6.5 font-mono text-[10px] text-muted">0%</span>
+          <input
+            class="range-input h-1 w-full cursor-pointer appearance-none rounded-full"
+            id="volumeSlider"
+            type="range"
+            min="0"
+            max="670"
+            value="100"
+            step="1"
+            aria-label="Volume percentage"
+          />
+          <span id="maxLabel" class="min-w-6.5 text-right font-mono text-[10px] text-muted">670%</span>
+        </div>
+        <div class="mt-4 flex items-center justify-between">
+          <button
+            class="spring-btn flex h-7.5 w-7.5 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-ink hover:border-accent hover:bg-accent/15 hover:text-accent"
+            id="decreaseButton"
+            type="button"
+            aria-label="Decrease volume by 5%"
+            title="Decrease volume by 5%"
+          >
+            <i class="fa-solid fa-minus text-xs" aria-hidden="true"></i>
+          </button>
+          <span class="font-mono text-[10px] tracking-wider text-muted">FINE ADJUST</span>
+          <button
+            class="spring-btn flex h-7.5 w-7.5 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-ink hover:border-accent hover:bg-accent/15 hover:text-accent"
+            id="increaseButton"
+            type="button"
+            aria-label="Increase volume by 5%"
+            title="Increase volume by 5%"
+          >
+            <i class="fa-solid fa-plus text-xs" aria-hidden="true"></i>
+          </button>
+        </div>
+      </section>
+
+      <div class="mt-2.5 grid grid-cols-2 gap-2">
+        <button
+          class="spring-btn flex h-8.5 items-center justify-center rounded-xl border border-accent/45 bg-accent text-[11px] font-semibold text-ink-dark hover:bg-accent-strong"
+          id="resetButton"
+          type="button"
+        >
+          <i class="fa-solid fa-rotate-left mr-1.5 text-xs" aria-hidden="true"></i>
+          Reset to 100%
+        </button>
+        <button
+          class="spring-btn flex h-8.5 items-center justify-center rounded-xl border border-white/12 bg-white/10 text-[11px] font-semibold text-ink hover:border-white/30 hover:bg-white/15"
+          id="maxButton"
+          type="button"
+        >
+          Max boost
+          <i class="fa-solid fa-rocket ml-1.5 text-xs text-warm" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div
+        id="statusCard"
+        class="mt-3 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs backdrop-blur-md transition-all duration-300"
+      >
+        <div class="flex items-center gap-2 overflow-hidden">
+          <span class="relative flex h-2 w-2 shrink-0">
+            <span id="statusPing" class="status-ping absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"></span>
+            <span id="statusDot" class="status-dot relative inline-flex h-2 w-2 rounded-full"></span>
+          </span>
+          <span id="statusText" class="truncate font-medium text-ink/80 text-[11px]">Ready</span>
+        </div>
+        <div id="statusBadge" class="status-badge flex shrink-0 items-center gap-1 rounded-md border border-white/10 bg-white/10 px-1.75 py-0.75 font-mono text-[9px] font-medium tracking-wider text-muted uppercase">
+          <i id="statusBadgeIcon" class="fa-solid fa-bolt text-[8px] text-accent"></i>
+          <span id="statusBadgeText">ACTIVE</span>
+        </div>
+      </div>
+
+      <footer class="mt-2 text-center">
+        <a
+          href="https://pasvantiss.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="font-mono text-[9.5px] text-muted/65 transition-colors duration-150 hover:text-accent hover:underline"
+        >
+          by Theocharis Pasvantis
+        </a>
+      </footer>
+    </main>
+    <script src="./popup.js"></script>
+  </body>
+</html>

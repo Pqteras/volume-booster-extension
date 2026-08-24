@@ -1,0 +1,12 @@
+node_modules/
+dist/
+public/icons/
+
+*.zip
+*.log
+
+.DS_Store
+Thumbs.db
+
+.env
+.env.*

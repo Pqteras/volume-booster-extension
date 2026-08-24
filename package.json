@@ -1,0 +1,32 @@
+{
+  "name": "volume-booster-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension that boosts a tab's volume up to 670%.",
+  "author": "Theocharis Pasvantis",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "build": "bun run clean && bun run build:js && bun run build:css && bun run build:zip",
+    "build:css": "tailwindcss -i ./src/popup/popup.css -o ./dist/popup.css --minify",
+    "build:js": "bun build.mjs",
+    "build:zip": "bun zip.mjs",
+    "clean": "bun clean.mjs",
+    "typecheck": "tsc --noEmit",
+    "zip": "bun zip.mjs"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "devDependencies": {
+    "@fontsource/dm-mono": "^5.3.0",
+    "@fontsource/space-grotesk": "^5.3.0",
+    "@fortawesome/fontawesome-free": "^7.3.1",
+    "@tailwindcss/cli": "^4.3.3",
+    "@types/chrome": "^0.2.7",
+    "esbuild": "^0.28.2",
+    "jszip": "^3.10.1",
+    "sharp": "^0.35.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2"
+  }
+}
