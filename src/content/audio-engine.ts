@@ -4,27 +4,59 @@ import type { AudioPipelineNode } from "../types";
 const mediaNodes = new Map<HTMLMediaElement, AudioPipelineNode>();
 const failedMedia = new WeakSet<HTMLMediaElement>();
 
+let lastVolume = DEFAULT_VOLUME;
+let lastMuted = false;
+
+const isIncognito = chrome.extension.inIncognitoContext;
+
 const AudioContextClass =
   window.AudioContext ||
-  (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  (window as unknown as { webkitAudioContext?: typeof AudioContext })
+    .webkitAudioContext;
 
 const resumeAudioContext = (context: AudioContext): void => {
   if (context.state !== "suspended") {
     return;
   }
 
-  context.resume().catch(() => {
-    // Autoplay policy: a later click/keydown on the page will resume it.
-  });
+  context.resume().catch(() => undefined);
 };
 
 const resumeAllContexts = (): void => {
   mediaNodes.forEach((node) => resumeAudioContext(node.context));
 };
 
+const retryPendingGain = (): void => {
+  if (lastVolume === DEFAULT_VOLUME && !lastMuted) {
+    return;
+  }
+
+  applyGainToAllMedia(lastVolume, lastMuted);
+};
+
 const gestureEvents = ["click", "keydown", "pointerdown", "touchstart"] as const;
 for (const eventName of gestureEvents) {
-  window.addEventListener(eventName, resumeAllContexts, { capture: true, passive: true });
+  window.addEventListener(
+    eventName,
+    () => {
+      resumeAllContexts();
+      if (isIncognito) {
+        retryPendingGain();
+      }
+    },
+    { capture: true, passive: true }
+  );
+}
+
+if (isIncognito) {
+  document.addEventListener(
+    "play",
+    () => {
+      resumeAllContexts();
+      retryPendingGain();
+    },
+    { capture: true, passive: true }
+  );
 }
 
 const closePipeline = (media: HTMLMediaElement, node: AudioPipelineNode): void => {
@@ -61,6 +93,14 @@ const getOrCreatePipelineNode = (media: HTMLMediaElement): AudioPipelineNode | n
 
   try {
     const context = new AudioContextClass();
+    resumeAudioContext(context);
+
+    // Incognito: hooking while suspended permanently silences the element.
+    if (isIncognito && context.state !== "running") {
+      void context.close().catch(() => undefined);
+      return null;
+    }
+
     let source: MediaElementAudioSourceNode;
 
     try {
@@ -84,7 +124,6 @@ const getOrCreatePipelineNode = (media: HTMLMediaElement): AudioPipelineNode | n
     resumeAudioContext(context);
     return node;
   } catch (error) {
-    // createMediaElementSource throws if the page already connected this element.
     if (error instanceof DOMException && error.name === "InvalidStateError") {
       failedMedia.add(media);
     }
@@ -124,6 +163,9 @@ const collectMedia = (root: ParentNode | HTMLMediaElement): HTMLMediaElement[] =
 };
 
 export const applyGainToAllMedia = (volume: number, isMuted: boolean): void => {
+  lastVolume = volume;
+  lastMuted = isMuted;
+
   pruneDisconnectedMedia();
   collectMedia(document).forEach((media) => applyGainToMedia(media, volume, isMuted));
 };
@@ -137,5 +179,7 @@ export const applyGainToAddedNode = (
     return;
   }
 
+  lastVolume = volume;
+  lastMuted = isMuted;
   collectMedia(node).forEach((media) => applyGainToMedia(media, volume, isMuted));
 };

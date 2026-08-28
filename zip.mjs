@@ -15,7 +15,7 @@ const addDirectory = async (dirPath, rootDir = dirPath) => {
     }
 
     const relPath = relative(rootDir, fullPath).replaceAll("\\", "/");
-    zip.file(relPath, await readFile(fullPath));
+    zip.file(`volume-booster-extension/${relPath}`, await readFile(fullPath));
   }
 };
 

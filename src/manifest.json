@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Volume Booster",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Boost any tab's volume up to 670%.",
   "minimum_chrome_version": "110",
   "permissions": ["storage"],
