@@ -43,6 +43,7 @@ if (maxLabel) {
 let activeTabId: number | undefined;
 let muted = false;
 let isAudible = false;
+let sendVolumeDebounceTimer = 0;
 
 const updateVisualizer = (): void => {
   const hasVolume = clampVolume(Number(volumeSlider.value)) > 0 && !muted;
@@ -56,7 +57,7 @@ const setStatus = (message: string, isError = false): void => {
   statusBadge.classList.toggle("error", isError);
 
   if (isError) {
-    statusBadgeText.textContent = "UNAVAILABLE";
+    statusBadgeText.textContent = "CONFLICT";
     statusBadgeIcon.className = "fa-solid fa-circle-exclamation text-[8px] text-[#f47f7f]";
   } else if (muted) {
     statusBadgeText.textContent = "MUTED";
@@ -119,6 +120,7 @@ const sendVolume = async (
 
   try {
     const response = (await chrome.runtime.sendMessage({
+      target: "background",
       type: MESSAGE_ACTIONS.SET_VOLUME,
       tabId: activeTabId,
       volume: settings.volume,
@@ -130,10 +132,35 @@ const sendVolume = async (
       return;
     }
 
-    setStatus("This page can't be controlled", true);
-  } catch {
-    setStatus("This page can't be controlled", true);
+    const rawError = response?.error || "This page can't be controlled";
+    let userFriendlyError = rawError;
+
+    if (rawError.includes("Cannot capture a tab with an active stream")) {
+      userFriendlyError = "Another booster extension is capturing this tab (disable it and refresh)";
+    }
+
+    console.error("Volume set failed:", rawError);
+    setStatus(userFriendlyError, true);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "This page can't be controlled";
+    console.error("Volume error:", message);
+    setStatus(message, true);
   }
+};
+
+const queueSendVolume = (
+  volume: number | string,
+  nextMuted: boolean = muted
+): void => {
+  const normalized = clampVolume(Number(volume));
+  muted = nextMuted;
+  render(normalized);
+  renderMuteButton();
+
+  window.clearTimeout(sendVolumeDebounceTimer);
+  sendVolumeDebounceTimer = window.setTimeout(() => {
+    void sendVolume(normalized, nextMuted);
+  }, 40);
 };
 
 const loadTab = async (): Promise<void> => {
@@ -149,6 +176,7 @@ const loadTab = async (): Promise<void> => {
   let stored: VolumeState = { volume: DEFAULT_VOLUME, muted: false };
   try {
     stored = (await chrome.runtime.sendMessage({
+      target: "background",
       type: MESSAGE_ACTIONS.GET_VOLUME,
       tabId: activeTabId,
     })) as VolumeState;
@@ -159,7 +187,7 @@ const loadTab = async (): Promise<void> => {
   muted = stored?.muted ?? false;
   render(stored?.volume ?? DEFAULT_VOLUME);
   renderMuteButton();
-  await sendVolume(stored?.volume ?? DEFAULT_VOLUME, muted);
+  setStatus(muted ? "Muted" : "Ready");
 };
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo): void => {
@@ -170,7 +198,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo): void => {
 });
 
 volumeSlider.addEventListener("input", (): void => {
-  void sendVolume(volumeSlider.value);
+  queueSendVolume(volumeSlider.value);
 });
 
 decreaseButton.addEventListener("click", (): void => {

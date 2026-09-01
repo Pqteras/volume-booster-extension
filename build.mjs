@@ -9,14 +9,14 @@ await mkdir("dist/icons", { recursive: true });
 await build({
   entryPoints: [
     { in: "src/background/index.ts", out: "background" },
-    { in: "src/content/index.ts", out: "content" },
+    { in: "src/offscreen/offscreen.ts", out: "offscreen" },
     { in: "src/popup/popup.ts", out: "popup" },
   ],
   outdir: "dist",
   bundle: true,
   format: "iife",
   platform: "browser",
-  target: "chrome110",
+  target: "chrome116",
   minify: true,
   legalComments: "none",
 });
@@ -24,6 +24,7 @@ await build({
 await Promise.all([
   cp("src/manifest.json", "dist/manifest.json"),
   cp("src/popup/popup.html", "dist/popup.html"),
+  cp("src/offscreen/offscreen.html", "dist/offscreen.html"),
   cp("public/logo.svg", "dist/logo.svg"),
 ]);
 

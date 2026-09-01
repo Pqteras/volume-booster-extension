@@ -26,22 +26,21 @@ Then in Chrome:
 
 ## What it can and can't do
 
-Works on normal websites with `<audio>` / `<video>` (YouTube, etc.), including media inside iframes.
+Works on all websites, including cross-origin media CDNs, streaming platforms (YouTube, ASMR/video sites, Netflix, Twitch, Vimeo), iframes, and WebAudio.
 
-Does not work on `chrome://` pages, the Chrome Web Store, or Chrome's PDF viewer. Chrome simply doesn't let extensions hook those. Local `file://` pages only work if you enable **Allow access to file URLs** on the extension's card in `chrome://extensions`.
-
-Some sites wire their own Web Audio graph. If a page has already taken over an element, this extension can't attach a second gain node to it.
+Does not work on `chrome://` pages, the Chrome Web Store, or Chrome's internal PDF viewer (Chrome security restrictions).
 
 ## How it works
 
-A content script inserts a [GainNode](https://developer.mozilla.org/en-US/docs/Web/API/GainNode) in front of media elements. The popup talks to a service worker, which stores `{ volume, muted }` per tab in `chrome.storage.session` and pushes it to every frame in that tab. Refreshing keeps the boost; closing the tab (or Chrome) forgets it.
+Uses Manifest V3 `chrome.tabCapture` and an Offscreen Document audio engine. When volume is boosted, Chrome captures the tab's mixed output audio stream and feeds it into a Web Audio [GainNode](https://developer.mozilla.org/en-US/docs/Web/API/GainNode) in the offscreen document. This avoids cross-origin CORS media restrictions entirely. When volume is set back to 100%, tab capture is released cleanly.
 
 ## Permissions
 
-- **storage** — so the boost survives a refresh during the same browser session.
-- The content script runs on all URLs, because the whole point is to control whatever tab you're actually watching.
+- **storage** — keeps tab volume state in session storage.
+- **tabCapture** — captures tab audio output for volume amplification.
+- **offscreen** — runs the Web Audio engine in an MV3 offscreen document.
 
-No accounts, no analytics, no network requests. The only stored data is volume and mute state, keyed by tab id, and it never leaves the machine.
+No accounts, no analytics, no network requests. The only stored data is volume and mute state, keyed by tab id, and it never leaves your machine.
 
 ## Scripts
 
