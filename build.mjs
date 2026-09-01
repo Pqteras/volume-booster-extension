@@ -11,6 +11,7 @@ await build({
     { in: "src/background/index.ts", out: "background" },
     { in: "src/offscreen/offscreen.ts", out: "offscreen" },
     { in: "src/popup/popup.ts", out: "popup" },
+    { in: "src/fullscreen/fullscreen.ts", out: "fullscreen" },
   ],
   outdir: "dist",
   bundle: true,

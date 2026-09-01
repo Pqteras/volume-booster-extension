@@ -123,6 +123,21 @@ const handleStartCapture = async (
   return true;
 };
 
+if (typeof chrome.tabCapture?.onStatusChanged?.addListener === "function") {
+  chrome.tabCapture.onStatusChanged.addListener((info) => {
+    if (typeof info?.tabId === "number" && typeof info?.fullscreen === "boolean") {
+      void chrome.runtime
+        .sendMessage({
+          target: "background",
+          type: "TAB_FULLSCREEN_CHANGE",
+          tabId: info.tabId,
+          fullscreen: info.fullscreen,
+        })
+        .catch(() => undefined);
+    }
+  });
+}
+
 chrome.runtime.onMessage.addListener(
   (
     message: ExtensionMessage,

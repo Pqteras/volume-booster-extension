@@ -23,6 +23,13 @@ export type TabCaptureEndedMessage = {
   tabId: number;
 };
 
+export type TabFullscreenChangeMessage = {
+  target?: "background";
+  type: "TAB_FULLSCREEN_CHANGE";
+  tabId?: number;
+  fullscreen: boolean;
+};
+
 export type SetVolumeResponse = {
   ok: boolean;
   error?: string;
@@ -73,6 +80,7 @@ export type ExtensionMessage =
   | SetVolumeMessage
   | GetVolumeMessage
   | TabCaptureEndedMessage
+  | TabFullscreenChangeMessage
   | OffscreenMessage;
 
 export type OffscreenResponse = {

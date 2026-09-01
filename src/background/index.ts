@@ -19,6 +19,7 @@ const DEFAULT_STATE: VolumeState = {
 
 let isCreatingOffscreenDocument = false;
 const tabOperationLocks = new Map<number, Promise<SetVolumeResponse>>();
+const previousWindowStates = new Map<number, `${chrome.windows.WindowState}`>();
 
 const isOffscreenDocumentOpen = async (): Promise<boolean> => {
   if (typeof chrome.offscreen?.hasDocument === "function") {
@@ -304,6 +305,46 @@ chrome.runtime.onMessage.addListener(
       return false;
     }
 
+    if (message.type === "TAB_FULLSCREEN_CHANGE") {
+      const tabId = message.tabId ?? sender.tab?.id;
+      if (tabId == null) {
+        sendResponse({ ok: false });
+        return true;
+      }
+
+      const isFullscreen = message.fullscreen;
+
+      void chrome.tabs
+        .get(tabId)
+        .then(async (tab) => {
+          if (!tab?.windowId) {
+            return;
+          }
+
+          const currentWindow = await chrome.windows.get(tab.windowId);
+          if (isFullscreen) {
+            if (currentWindow.state !== "fullscreen") {
+              if (currentWindow.state) {
+                previousWindowStates.set(tab.windowId, currentWindow.state);
+              }
+              await chrome.windows.update(tab.windowId, { state: "fullscreen" });
+            }
+          } else {
+            const prevState = previousWindowStates.get(tab.windowId);
+            if (prevState && currentWindow.state === "fullscreen") {
+              previousWindowStates.delete(tab.windowId);
+              const restoreState =
+                prevState === "locked-fullscreen" ? "maximized" : prevState;
+              await chrome.windows.update(tab.windowId, { state: restoreState });
+            }
+          }
+        })
+        .catch(() => undefined);
+
+      sendResponse({ ok: true });
+      return true;
+    }
+
     if (message.type === "TAB_CAPTURE_ENDED") {
       void setTabCapturedStatus(message.tabId, false);
       sendResponse({ ok: true });
@@ -391,3 +432,36 @@ chrome.runtime.onInstalled.addListener(async (): Promise<void> => {
   }
   await chrome.storage.session.clear().catch(() => undefined);
 });
+
+if (typeof chrome.tabCapture?.onStatusChanged?.addListener === "function") {
+  chrome.tabCapture.onStatusChanged.addListener(async (info) => {
+    if (typeof info?.tabId === "number" && typeof info?.fullscreen === "boolean") {
+      try {
+        const tab = await chrome.tabs.get(info.tabId);
+        if (!tab?.windowId) {
+          return;
+        }
+
+        const currentWindow = await chrome.windows.get(tab.windowId);
+        if (info.fullscreen) {
+          if (currentWindow.state !== "fullscreen") {
+            if (currentWindow.state) {
+              previousWindowStates.set(tab.windowId, currentWindow.state);
+            }
+            await chrome.windows.update(tab.windowId, { state: "fullscreen" });
+          }
+        } else {
+          const prevState = previousWindowStates.get(tab.windowId);
+          if (prevState && currentWindow.state === "fullscreen") {
+            previousWindowStates.delete(tab.windowId);
+            const restoreState =
+              prevState === "locked-fullscreen" ? "maximized" : prevState;
+            await chrome.windows.update(tab.windowId, { state: restoreState });
+          }
+        }
+      } catch {
+        // Tab or window might be closed
+      }
+    }
+  });
+}

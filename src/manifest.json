@@ -25,5 +25,13 @@
   },
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["fullscreen.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ]
 }
